@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @notice Simple DEX contract that allows users to swap ETH for MyUSD and MyUSD for ETH
+ * @notice Simple DEX contract that allows users to swap ETH for CORN and CORN for ETH
  */
-contract StablecoinDEX {
+contract CoinDEX {
     /* ========== GLOBAL VARIABLES ========== */
 
     IERC20 token; //instantiates the imported contract
     uint256 public totalLiquidity;
-    mapping(address => uint256) public liquidity;
+    mapping (address => uint256) public liquidity;
 
     /* ========== EVENTS ========== */
 
@@ -41,7 +41,7 @@ contract StablecoinDEX {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /**
-     * @notice initializes amount of tokens that will be transferred to the DEX itself from the erc20 contract. Loads contract up with both ETH and MyUSD.
+     * @notice initializes amount of tokens that will be transferred to the DEX itself from the erc20 contract. Loads contract up with both ETH and CORN.
      * @param tokens amount to be transferred to DEX
      * @return totalLiquidity is the number of LPTs minting as a result of deposits made to DEX contract
      * NOTE: since ratio is 1:1, this is fine to initialize the totalLiquidity as equal to eth balance of contract.
@@ -64,23 +64,19 @@ contract StablecoinDEX {
     }
 
     /**
-     * @notice returns the current price of ETH in MyUSD
+     * @notice returns the current price of ETH in $MyUSD
      */
     function currentPrice() public view returns (uint256 _currentPrice) {
         _currentPrice = price(1 ether, address(this).balance, token.balanceOf(address(this)));
     }
 
-    /**
+        /**
      * @notice returns the amount you need to put in (xInput) when given the amount of yOutput you want along with the reserves of both assets in the pool
      */
-    function calculateXInput(
-        uint256 yOutput,
-        uint256 xReserves,
-        uint256 yReserves
-    ) public pure returns (uint256 xInput) {
+    function calculateXInput(uint256 yOutput, uint256 xReserves, uint256 yReserves) public pure returns (uint256 xInput) {
         uint256 numerator = yOutput * xReserves;
         uint256 denominator = yReserves - yOutput;
-
+    
         return (numerator / denominator) + 1;
     }
 
@@ -138,12 +134,12 @@ contract StablecoinDEX {
         uint256 tokenReserve = token.balanceOf(address(this));
         uint256 tokenDeposit;
 
-        tokenDeposit = ((msg.value * tokenReserve) / ethReserve) + 1;
+        tokenDeposit = (msg.value * tokenReserve / ethReserve) + 1;
 
         require(token.balanceOf(msg.sender) >= tokenDeposit, "insufficient token balance");
         require(token.allowance(msg.sender, address(this)) >= tokenDeposit, "insufficient allowance");
 
-        uint256 liquidityMinted = (msg.value * totalLiquidity) / ethReserve;
+        uint256 liquidityMinted = msg.value * totalLiquidity / ethReserve;
         liquidity[msg.sender] += liquidityMinted;
         totalLiquidity += liquidityMinted;
 
@@ -162,9 +158,9 @@ contract StablecoinDEX {
         uint256 tokenReserve = token.balanceOf(address(this));
         uint256 ethWithdrawn;
 
-        ethWithdrawn = (amount * ethReserve) / totalLiquidity;
+        ethWithdrawn = amount * ethReserve / totalLiquidity;
 
-        tokenAmount = (amount * tokenReserve) / totalLiquidity;
+        tokenAmount = amount * tokenReserve / totalLiquidity;
         liquidity[msg.sender] -= amount;
         totalLiquidity -= amount;
         (bool sent, ) = payable(msg.sender).call{ value: ethWithdrawn }("");
